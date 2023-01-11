@@ -45,3 +45,42 @@ record in order to be more fault tolerant.
     * config.py
 4. Install the API server requirements with `pip install -r server_requirements.txt`
 5. Run the API server with the command `uvicorn postgres_api:api --host 0.0.0.0`
+
+## Database Table Structure
+
+```sql
+--------------------------------------------------
+-- Create Table public.env_log
+--------------------------------------------------
+Create table public.env_log (
+    location                       VARCHAR(150)        NOT NULL  ,
+    ts_load_utc                    TIMESTAMP(26,6)     NOT NULL  ,
+    temp_c                         NUMERIC(5,2)                  ,
+    humd_pct                       NUMERIC(5,2)                  ,
+    co2_ppm                        NUMERIC(8,2)                  ,
+    prssr_hpa                      ????????????                  ,
+    pm1_0_umdl                     ????????????                  ,
+    pm2_5_umdl                     ????????????                  ,
+    pm10_0_umdl                    ????????????                  ,
+    primary key (location, ts_load_utc)
+) ;
+
+comment on column public.env_log.location is 
+    'Location of record collection';
+comment on column public.env_log.ts_load_utc is 
+    'Timestamp (UTC) of record collection';
+comment on column public.env_log.humd_pct is 
+    'Relative humidity in percents - %';
+comment on column public.env_log.temp_c is 
+    'Temperature in degrees celsius - C';
+comment on column public.env_log.co2_ppm is 
+    'CO2 concentration in parts per million - ppm';
+comment on column public.env_log.prssr_hpa is 
+    'Barometric pressure in hectopascal or milibar - hPa or mbar';
+comment on column public.env_log.pm1_0_umdl is 
+    'PM 1.0 concentration in micrograms per deciliter - ug / 0.1L';
+comment on column public.env_log.pm2_5_umdl is 
+    'PM 2.5 concentration in micrograms per deciliter - ug / 0.1L';
+comment on column public.env_log.pm10_0_umdl is 
+    'PM 10 concentration in micrograms per deciliter - ug / 0.1L';
+```
