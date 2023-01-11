@@ -1,0 +1,1 @@
+uvicorn postgres_api:api --reload --host 0.0.0.0
