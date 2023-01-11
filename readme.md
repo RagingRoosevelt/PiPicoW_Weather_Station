@@ -1,7 +1,7 @@
 # Weather Station for Raspberry Pi Pico W
 
 This project aims to build a weather station running on a Pi Pico W.  The sensors are all I2C devices
-from Adafruit.
+from Adafruit.  A RESTful API runs in the background to facilitate writing to a database.
 
 ## Hardware
 
