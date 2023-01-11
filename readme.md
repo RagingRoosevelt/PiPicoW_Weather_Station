@@ -1,4 +1,23 @@
-# Architecutre
+# Weather Station for Raspberry Pi Pico W
+
+This project aims to build a weather station running on a Pi Pico W.  The sensors are all I2C devices
+from Adafruit.
+
+## Hardware
+
+* [Raspberry Pico Pi W][picow]
+* [I2C SCD-30][co2] (addr: `0x61`) - CO2
+* [I2C DS3231][rtc] (addr: `0x68`) - Real time clock
+* [I2C PMSA003I][pm25] (addr: `0x12`) - PM2.5
+* [I2C BME280][wthr] (addr: `0x77`) - Temp / Humidity / Pressure
+
+[picow]: https://www.adafruit.com/product/5526
+[co2]: https://www.adafruit.com/product/4867
+[rtc]: https://www.adafruit.com/product/5188
+[pm25]: https://www.adafruit.com/product/4632
+[wthr]: https://www.adafruit.com/product/2652
+
+## Architecutre
 
 This project is split into two areas of focus:
 * Scripts for the Pi Pico W
@@ -12,7 +31,7 @@ The API backend is just an endpoint which is set up to allow the Pi Pico to save
 a database.  The API endpoint allows the Pico to `POST` a list of several records rather than only a single 
 record in order to be more fault tolerant.
 
-# Setup
+## Setup
 
 1. Install the following packages on your Pi Pico W
     * `micropython_scd30` 
