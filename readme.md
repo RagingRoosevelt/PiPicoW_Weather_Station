@@ -8,15 +8,29 @@ background to facilitate writing to a database.
 
 * [Raspberry Pico Pi W][picow]
 * [I2C SCD-30][co2] (addr: `0x61`) - CO2
+  * [pypi][co2_pypi]
+  * [gh][co2_gh]
 * [I2C DS3231][rtc] (addr: `0x68`) - Real time clock
-* [I2C PMSA003I][pm25] (addr: `0x12`) - PM2.5
+  * [pypi][rtc_pypi]
+  * [gh][rtc_gh]
+  * [docs][rtc_docs]
 * [I2C BME280][wthr] (addr: `0x77`) - Temp / Humidity / Pressure
+  * [pypi][wthr_pypi]
+  * [gh][wthr_gh]
+* [I2C PMSA003I][pm25] (addr: `0x12`) - PM2.5
 
 [picow]: https://www.adafruit.com/product/5526
 [co2]: https://www.adafruit.com/product/4867
+[co2_gh]: https://github.com/agners/micropython-scd30
+[co2_pypi]: https://pypi.org/project/micropython-scd30/
 [rtc]: https://www.adafruit.com/product/5188
-[pm25]: https://www.adafruit.com/product/4632
+[rtc_gh]: https://github.com/adafruit/Adafruit-uRTC
+[rtc_pypi]: https://pypi.org/project/urtc/
+[rtc_docs]: https://micropython-urtc.readthedocs.io/en/latest/
 [wthr]: https://www.adafruit.com/product/2652
+[wthr_gh]: https://github.com/SebastianRoll/mpy_bme280_esp8266
+[wthr_pypi]: https://pypi.org/project/micropython-bme280/
+[pm25]: https://www.adafruit.com/product/4632
 
 ## Architecutre
 
@@ -36,8 +50,12 @@ be more fault tolerant.
 
 ## Setup
 
-1. Install the following packages on your Pi Pico W
+### Raspberry Pi Pico W
+
+1. Install the following packages on your Pi Pico W (outlined in hw section)
+    * `micropython_bme280`
     * `micropython_scd30`
+    * `urtc`
 2. Copy `config.py.template` and rename the copy to `config.py`.  Fill out the
    values to match your situation
     * `LOCATION` - Your logging location (eg '`Bedroom`', `'Crawl Space'`, etc)
@@ -48,11 +66,20 @@ be more fault tolerant.
 3. Copy the Pico scripts to your Pico
     * main.py
     * config.py
-4. Install the API server requirements with
-   `pip install -r server_requirements.txt`
-5. Run the API server with the command `uvicorn postgres_api:api --host 0.0.0.0`
+4. Connect an I2C sensor device to the GPIO pins:
+    * SDA -> GP0
+    * SLC -> GP1
+    * GND -> GND
+    * V   -> 3.3v
+5. Use additional STEMMA QT plugs to daisy-chain the rest of the I2C sensors
 
-## Database Table Structure
+### API Server
+
+1. Install the API server requirements with
+   `pip install -r server_requirements.txt`
+2. Run the API server with the command `uvicorn postgres_api:api --host 0.0.0.0`
+
+### Database Table Structure
 
 Create the tables and function as described in [create.sql][create].
 * `env_log` - Stores measurement records
