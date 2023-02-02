@@ -4,7 +4,9 @@ import json
 import time
 import urequests as requests
 from machine import I2C, SoftI2C, Pin
-from scd30 import SCD30
+from scd30 import SCD30                  # https://github.com/agners/micropython-scd30
+from bme280 import BME280                # https://github.com/SebastianRoll/mpy_bme280_esp8266
+from urtc import DS3231,datetime_tuple   # https://github.com/adafruit/Adafruit-uRTC
 from collections import namedtuple
 import random
 
@@ -25,41 +27,51 @@ def namedtuple2dict(tup:datum):
             tup
         )
     }
-    
-# i2c = I2C(k)
-i2c = SoftI2C(scl=Pin(1), sda=Pin(0))
-scd30 = SCD30(i2c, 0x61)
+
+i2c = I2C(0, scl=Pin(1), sda=Pin(0))
+scd30 = SCD30(i2c=i2c, addr=0x61)
+bme280 = BME280(i2c=i2c, address=0x77)
+#pmsa003i = NotImplementedYet
+rtc = DS3231(i2c=i2c, address=0x68)
+
+# Set datetime:
+# rtc.datetime(
+#     datetime_tuple(year=2023,month=2,day=2,hour=0, minute=16, second=0)
+# )
 
 
+# Connect to wifi
 wlan=network.WLAN(network.STA_IF)
 wlan.active(True)
 
 print("Waiting for wifi..", end='')
+wlan.connect(config.SSID,config.WIFIP)
 while True:
     print(".",end='')
-    wlan.connect(config.SSID,config.WIFIP)
     if wlan.isconnected() == True:
         break
     else:
         time.sleep(5)
 print("connected")
 
-
-
-def submit_measurements(measurements):
+def submit_measurements(measurements:list[datum]):
+    """
+    Takes a list of datum measurements and sends them to the API
+    to be written to a database
+    """
     payload = json.dumps([namedtuple2dict(m) for m in measurements])
 
     try:
         response = requests.post(
-            f'{config.API_BASE_URL}/table/public/env_log/records/',
+            f"{config.API_BASE_URL}/table/public/env_log/records/",
             data=payload,
         )
-        
+
         status_code = response.status_code
         response.close()
-    
-        return (status_code == 200) and random.choice([True]*3+[False]*1)
-    
+
+        return (status_code == 200)
+
     except OSError as ex:
         if ex.errno == 103: #ECONNABORTED
             print("Error: Connection Aborted")
@@ -67,6 +79,7 @@ def submit_measurements(measurements):
         else:
             raise
 
+# Start with an empty list of measurements
 measurements = []
 while True:
     print('Connecting to SCD-30..', end='')
@@ -75,21 +88,43 @@ while True:
         print('.',end='')
         time.sleep_ms(200)
     print('connected')
-    
-    measurement = scd30.read_measurement()
+
+    # Note the current time and collect measurements from each of the sensors
+    now = rtc.datetime()
+    measurement_bme280 = [# degC, hPa, %
+        v*d for v,d in
+        zip(bme280.read_compensated_data(),[0.01,0.0000390625,0.0009765625])#[100,25600,1024]
+    ] # Each of these measurements needs to be adjusted to match expected units
+    measurement_scd30 = scd30.read_measurement()
+
+    now_str = "{}-{:02}-{:02} {:02}:{:02}:{:02}.0".format(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute,
+        now.second
+    )
+
+    # Append the current measurement to the queue of measurements to be submitted
     measurements.append(datum(
             location=config.LOCATION,
-            ts='2022-02-02 23:00:00.3123',
-            co2_ppm=measurement[0],
-            temp_c=measurement[1],
-            hum_pct=measurement[2],
-            pssr=None,
-            pm25=None,
+            ts=now_str,
+            co2_ppm=measurement_scd30[0],
+            temp_c=measurement_scd30[1],
+            hum_pct=measurement_scd30[2],
+            pssr=measurement_bme280[1],
+            pm25=None, # 1 ug / dL = 10000 ug / m^3
     ))
 
+    print(f"[{now_str}]")
+    print("  SCD-30  : {}ppm, {}C, {}%".format(*measurement_scd30))
+    print("  BME280  : {}C, {}hPa, {}%".format(*measurement_bme280))
+    #print("  PMSA003I: {}C, {}hPa, {}%".format(*measurement_pmsa003i))
+
+    # Try to submit the measurements, if successful, reset the queue to empty
     if submit_measurements(measurements) == True:
         print(f"Submitted {len(measurements)} measurements")
         measurements = []
-        
-    time.sleep_ms(15*1000)
 
+    time.sleep_ms(15*1000)
