@@ -11,12 +11,14 @@ from collections import namedtuple
 
 datum = namedtuple("datum", [
     'location',
-    'ts',
+    'ts_utc',
     'temp_c',
     'hum_pct',
     'co2_ppm',
-    'pssr',
-    'pm25',
+    'prssr_hpa',
+    'pm1_0_ugmm3',
+    'pm2_5_ugmm3',
+    'pm10_0_ugmm3'
 ])
 def namedtuple2dict(tup:datum):
     return {
@@ -123,9 +125,9 @@ while True:
             temp_c=measurement_scd30[1],
             hum_pct=measurement_scd30[2],
             prssr_hpa=measurement_bme280[1],
-            # pm1_0_ugmm3=None,
-            # pm2_5_ugmm3=None, # 1 ug / dL = 10000 ug / m^3
-            # pm10_0_ugmm3=None,
+            pm1_0_ugmm3=None,
+            pm2_5_ugmm3=None, # 1 ug / dL = 10000 ug / m^3
+            pm10_0_ugmm3=None,
     ))
 
     print(f"[{now_str}]")
