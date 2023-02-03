@@ -3,12 +3,11 @@ import network
 import json
 import time
 import urequests as requests
-from machine import I2C, SoftI2C, Pin
+from machine import I2C, Pin
 from scd30 import SCD30                  # https://github.com/agners/micropython-scd30
 from bme280 import BME280                # https://github.com/SebastianRoll/mpy_bme280_esp8266
 from urtc import DS3231,datetime_tuple   # https://github.com/adafruit/Adafruit-uRTC
 from collections import namedtuple
-import random
 
 datum = namedtuple("datum", [
     'location',
@@ -54,6 +53,10 @@ while True:
         time.sleep(5)
 print("connected")
 
+sleep_time = lambda _dt: 60*(
+    config.LOGGING_INTERVAL - (_dt.minute % config.LOGGING_INTERVAL) - 1
+) + (60 - _dt.second)
+
 def submit_measurements(measurements:list[datum]):
     """
     Takes a list of datum measurements and sends them to the API
@@ -81,6 +84,12 @@ def submit_measurements(measurements:list[datum]):
 
 # Start with an empty list of measurements
 measurements = []
+
+# Sleep until the next time interval
+print(f"Sleeping for {sleep_time(rtc.datetime())/60} minutes")
+time.sleep(sleep_time(rtc.datetime()))
+
+# Start the logging loop
 while True:
     print('Connecting to SCD-30..', end='')
     # Wait for sensor data to be ready to read (by default every 2 seconds)
@@ -97,24 +106,26 @@ while True:
     ] # Each of these measurements needs to be adjusted to match expected units
     measurement_scd30 = scd30.read_measurement()
 
-    now_str = "{}-{:02}-{:02} {:02}:{:02}:{:02}.0".format(
-        now.year,
-        now.month,
-        now.day,
-        now.hour,
-        now.minute,
-        now.second
+    now_str = config.TS_FORMAT.format(
+        yr=now.year,
+        mth=now.month,
+        day=now.day,
+        hr=now.hour,
+        min=now.minute,
+        sec=now.second
     )
 
     # Append the current measurement to the queue of measurements to be submitted
     measurements.append(datum(
             location=config.LOCATION,
-            ts=now_str,
+            ts_utc=now_str,
             co2_ppm=measurement_scd30[0],
             temp_c=measurement_scd30[1],
             hum_pct=measurement_scd30[2],
-            pssr=measurement_bme280[1],
-            pm25=None, # 1 ug / dL = 10000 ug / m^3
+            prssr_hpa=measurement_bme280[1],
+            # pm1_0_ugmm3=None,
+            # pm2_5_ugmm3=None, # 1 ug / dL = 10000 ug / m^3
+            # pm10_0_ugmm3=None,
     ))
 
     print(f"[{now_str}]")
@@ -127,4 +138,6 @@ while True:
         print(f"Submitted {len(measurements)} measurements")
         measurements = []
 
-    time.sleep_ms(15*1000)
+    # Sleep until the next time interval
+    print(f"Sleeping for {sleep_time(rtc.datetime())/60} minutes")
+    time.sleep(sleep_time(rtc.datetime()))

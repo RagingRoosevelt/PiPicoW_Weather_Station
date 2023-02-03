@@ -2,3 +2,5 @@ LOCATION = ''
 SSID = ''
 WIFIP = ''
 API_BASE_URL = ''
+LOGGING_INTERVAL = 15 # minutes
+TS_FORMAT = "{yr}-{mth:02}-{day:02} {hr:02}:{min:02}:{sec:02}.0"
